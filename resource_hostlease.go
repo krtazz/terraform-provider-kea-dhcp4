@@ -30,7 +30,7 @@ func hostLease() *schema.Resource {
 		},
 		Create: resourceCreateLease,
 		Read:   resourceReadLease,
-		Update: resourceUpdateLease,
+		//Update: resourceUpdateLease,
 		Delete: resourceDeleteLease,
 		//Exists: resourceExistsLease,
 		Importer: &schema.ResourceImporter{
@@ -69,13 +69,13 @@ func resourceCreateLease(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.SetId(lease.Hwaddress)
+	d.SetId(lease.Hostname)
 	return nil
 }
 
-func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
+/*func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 	return nil
-}
+}*/
 func resourceReadLease(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
@@ -83,6 +83,6 @@ func resourceDeleteLease(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-//func resourceExistsLease(d *schema.ResourceData, m interface{}) error {
-//	return nil
-//}
+/*func resourceExistsLease(d *schema.ResourceData, m interface{}) error {
+	return nil
+}*/
