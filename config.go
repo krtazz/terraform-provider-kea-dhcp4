@@ -138,6 +138,13 @@ func (c *Client) NewLease(r Reservations) error {
 	return nil
 }
 
+func (c *Client) checkAndUpdateLease(r Reservations) error {
+	//var data []byte
+	log.Printf(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[0].Hostname)
+
+	return nil
+}
+
 //SaveConfig method to save a config file for kea-dhcpd4
 func (c *Client) SaveConfig(r Reservations) error {
 	var data []byte

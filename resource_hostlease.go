@@ -30,7 +30,7 @@ func hostLease() *schema.Resource {
 		},
 		Create: resourceCreateLease,
 		Read:   resourceReadLease,
-		//Update: resourceUpdateLease,
+		Update: resourceUpdateLease,
 		Delete: resourceDeleteLease,
 		//Exists: resourceExistsLease,
 		Importer: &schema.ResourceImporter{
@@ -76,6 +76,16 @@ func resourceCreateLease(d *schema.ResourceData, m interface{}) error {
 /*func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 	return nil
 }*/
+func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
+	apiClient := m.(*Client)
+	lease := Reservations{
+		Hostname:  d.Get("name").(string),
+		Hwaddress: d.Get("mac_address").(string),
+		Ipaddress: d.Get("ip_address").(string),
+	}
+	apiClient.checkAndUpdateLease(lease)
+	return nil
+}
 func resourceReadLease(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
