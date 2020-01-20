@@ -39,10 +39,10 @@ Configuration and Usage:
         kea_server_configfile = "/etc/kea/kea-dhcp4.conf"
     }
     # create resource lease in dhcp conf.
-    resource "kea-dhcp4_host_lease" "vm3" {
-        name = "vm3"
-        mac_address = "52:54:00:06:19:25"
-        ip_address = "192.168.122.10"
+    resource "kea-dhcp4_host_lease" "exampleVM" {
+        name = "exampleVM"
+        mac_address = "aa:bb:cc:00:11:22"
+        ip_address = "192.168.10.10"
     }
 ```
 
