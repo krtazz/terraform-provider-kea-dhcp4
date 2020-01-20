@@ -73,9 +73,6 @@ func resourceCreateLease(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-/*func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
-	return nil
-}*/
 func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*Client)
 	lease := Reservations{
@@ -83,13 +80,38 @@ func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 		Hwaddress: d.Get("mac_address").(string),
 		Ipaddress: d.Get("ip_address").(string),
 	}
-	apiClient.checkAndUpdateLease(lease)
+	err := apiClient.UpdateLease(lease)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func resourceReadLease(d *schema.ResourceData, m interface{}) error {
+	apiClient := m.(*Client)
+	lease := Reservations{
+		Hostname:  d.Get("name").(string),
+		Hwaddress: d.Get("mac_address").(string),
+		Ipaddress: d.Get("ip_address").(string),
+	}
+	ok := apiClient.ReadLease(lease)
+	if !ok {
+		d.SetId("")
+	}
 	return nil
 }
 func resourceDeleteLease(d *schema.ResourceData, m interface{}) error {
+	apiClient := m.(*Client)
+	lease := Reservations{
+		Hostname:  d.Get("name").(string),
+		Hwaddress: d.Get("mac_address").(string),
+		Ipaddress: d.Get("ip_address").(string),
+	}
+	err := apiClient.DeleteLease(lease)
+	if err != nil {
+		return err
+	}
+	d.SetId("")
+
 	return nil
 }
 

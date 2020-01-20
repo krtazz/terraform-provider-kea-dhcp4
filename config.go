@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-//SERVICE define which IP version we are usig (currently only dhcp4 supported)
+//SERVICE define which IP version we are use (currently only dhcp4 supported)
 var SERVICE []string = []string{"dhcp4"}
 
 type configReq struct {
@@ -117,7 +117,19 @@ func (c *Config) Client() (*Client, error) {
 	return client, nil
 }
 
-//NewLease method to create new lease fot kea-dhcpd4
+//ReadLease method to check if lease exists in kea-dhcpd4
+func (c *Client) ReadLease(r Reservations) bool {
+	for _, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
+		if reservation.Hostname == r.Hostname {
+			log.Printf("[DEBUG] read function found host\n")
+			return true
+		}
+	}
+	log.Printf("[DEBUG] read function cannot found the host\n")
+	return false
+}
+
+//NewLease method to create new lease fot kea-dhcpd4 works!
 func (c *Client) NewLease(r Reservations) error {
 	var data []byte
 	c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations = append(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations, r)
@@ -132,21 +144,70 @@ func (c *Client) NewLease(r Reservations) error {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		c.SaveConfig()
 		log.Printf("[INFO] New lease shoud be added.. %s\n", string(data))
 	}
 
 	return nil
 }
 
-func (c *Client) checkAndUpdateLease(r Reservations) error {
-	//var data []byte
-	log.Printf(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[0].Hostname)
+// UpdateLease resource works!
+func (c *Client) UpdateLease(r Reservations) error {
+	var data []byte
+	for index, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
+		if reservation.Hostname == r.Hostname {
+			c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[index] = r
+		}
+	}
+	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
+	enc, err := json.Marshal(jsonSet)
+	check(err)
+	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
+	req.SetBasicAuth(c.Config.Username, c.Config.Password)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+	} else {
+		data, _ = ioutil.ReadAll(resp.Body)
+		c.SaveConfig()
+		log.Printf("[INFO] The lease shoud be updated.. %s\n", string(data))
+	}
 
 	return nil
+
+}
+
+// DeleteLease resource
+func (c *Client) DeleteLease(r Reservations) error {
+	var data []byte
+	for index, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
+		if reservation.Hostname == r.Hostname {
+			c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations = append(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[:index],
+				c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[index+1:]...)
+		}
+	}
+	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
+	enc, err := json.Marshal(jsonSet)
+	check(err)
+	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
+	req.SetBasicAuth(c.Config.Username, c.Config.Password)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+	} else {
+		data, _ = ioutil.ReadAll(resp.Body)
+		c.SaveConfig()
+		log.Printf("[INFO] The lease should be deleted if existed.. %s\n", string(data))
+	}
+
+	return nil
+
 }
 
 //SaveConfig method to save a config file for kea-dhcpd4
-func (c *Client) SaveConfig(r Reservations) error {
+func (c *Client) SaveConfig() error {
 	var data []byte
 	jsonWrite := "{ \"command\": \"config-write\", \"service\": [ \"dhcp4\" ], \"arguments\":{\"filename\":\"" + c.Config.Configfile + "\"} }"
 	buff := new(bytes.Buffer)
