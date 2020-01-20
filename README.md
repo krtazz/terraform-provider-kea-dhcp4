@@ -24,6 +24,7 @@ Configuration and Usage:
 1. The plugin has been written for connection to Kea API with basic auth, so please set up your kea REST API with basic authorisation,
     (it can be done if you have hidden after apache instance), its strongly recommended using https protocol to keep credentials safety.
 2. To set credentials to Kea API you can use export variables:
+
 ```
     export TF_VAR_kea_user=User
     export TF_VAR_kea_pass=Password
