@@ -50,6 +50,6 @@ Notice: you need to have already defined subnets in your kea server,
 this plugin allows you to define host lease only for host defined in terraform any kind of infrastructure which use Kea DHCPd. 
 
 
-author nutcracker - michal.lis.1987@gmail.com
+author michal.lis.1987@gmail.com
 
 GNU Public License see LICENSE file.
