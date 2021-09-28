@@ -1,4 +1,4 @@
-module terraform-kea-dhcp4
+module terraform-provider-kea-dhcp4
 
 go 1.17
 
