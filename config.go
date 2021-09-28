@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,6 +12,14 @@ import (
 
 //SERVICE define which IP version we are use (currently only dhcp4 supported)
 var SERVICE []string = []string{"dhcp4"}
+
+// REST API response codes
+const (
+	KEA_SUCCESS int = iota
+	KEA_ERROR
+	KEA_UNSUPPORTED
+	KEA_EMPTY
+)
 
 type configReq struct {
 	Command string   `json:"command"`
@@ -30,36 +39,180 @@ type NestedElem struct {
 
 //Arguments structure
 type Arguments struct {
-	Dhcp4   Dhcp4       `json:"Dhcp4"`
-	Logging interface{} `json:"Logging"` // If you dont need to modify this area just pass as interface{}
+	Dhcp4 Dhcp4 `json:"Dhcp4"`
+}
+
+//Response structure
+type Response struct {
+	Result int    `json:"result"`
+	Text   string `json:"text"`
 }
 
 //Dhcp4 structure
 type Dhcp4 struct {
-	Subnet4                 []Subnet4   `json:"subnet4"`
-	InterfacesConfig        interface{} `json:"interfaces-config"`
-	ControlSocket           interface{} `json:"control-socket"`
-	LeaseDatabase           interface{} `json:"lease-database"`
-	ExpiredLeasesProcessing interface{} `json:"expired-leases-processing"`
-	OptionData              interface{} `json:"option-data"`
+	Authoritative              bool             `json:"authoritative"`
+	BootFileName               string           `json:"boot-file-name"`
+	CalculateTeeTimes          bool             `json:"calculate-tee-times"`
+	ControlSocket              interface{}      `json:"control-socket"`
+	DeclineProbationPeriod     int              `json:"decline-probation-period"`
+	DHCPDDNS                   interface{}      `json:"dhcp-ddns"`
+	DHCPQueueControl           interface{}      `json:"dhcp-queue-control"`
+	DHCP4o6Port                int              `json:"dhcp4o6-port"`
+	EchoClientId               bool             `json:"echo-client-id"`
+	ExpiredLeasesProcessing    interface{}      `json:"expired-leases-processing"`
+	HooksLibraries             []HooksLibraries `json:"hooks-libraries"`
+	HostReservationIdentifiers []string         `json:"host-reservation-identifiers"`
+	InterfacesConfig           interface{}      `json:"interfaces-config"`
+	LeaseDatabase              interface{}      `json:"lease-database"`
+	Loggers                    []Loggers        `json:"loggers"`
+	MatchClientId              bool             `json:"match-client-id"`
+	NextServer                 string           `json:"next-server"`
+	OptionData                 interface{}      `json:"option-data"`
+	OptionDef                  interface{}      `json:"option-def"` // Not implemented
+	RebindTimer                int              `json:"rebind-timer"`
+	RenewTimer                 int              `json:"renew-timer"`
+	ReservationMode            string           `json:"reservation-mode"`
+	SanityChecks               interface{}      `json:"sanity-checks"`
+	ServerHostname             string           `json:"server-hostname"`
+	ServerTag                  string           `json:"server-tag"`
+	SharedNetworks             interface{}      `json:"shared-networks"` // Not implemented
+	Subnet4                    []Subnet4        `json:"subnet4"`
+	T1Percent                  float64          `json:"t1-percent"`
+	T2Percent                  float64          `json:"t2-percent"`
+	ValidLifetime              int              `json:"valid-lifetime"`
+}
+
+//ControlSocket structure
+type ControlSocket struct {
+	SocketName string `json:"socket-name"`
+	SocketType string `json:"socket-type"`
+}
+
+//DHCPDDNS structure
+type DHCPDDNS struct {
+	EnableUpdates        bool   `json:"enable-updates"`
+	GeneratedPrefix      string `json:"generated-prefix"`
+	MaxQueueSize         int    `json:"max-queue-size"`
+	NCRFormat            string `json:"ncr-format"`
+	NCRProtocol          string `json:"ncr-protocol"`
+	OverrideClientUpdate bool   `json:"override-client-update"`
+	OverrideNoUpdate     bool   `json:"override-no-update"`
+	QualifyingSuffix     string `json:"qualifying-suffix"`
+	ReplaceClientName    string `json:"replace-client-name"`
+	SenderIP             string `json:"sender-ip"`
+	SenderPort           int    `json:"sender-port"`
+	ServerIP             string `json:"server-ip"`
+	ServerPort           int    `json:"server-port"`
+}
+
+//DHCPQueueControl structure
+type DHCPQueueControl struct {
+	Capacity    int    `json:"capacity"`
+	EnableQueue bool   `json:"enable-queue"`
+	QueueType   string `json:"queue-type"`
+}
+
+//ExpiredLeasesProcessing structure
+type ExpiredLeasesProcessing struct {
+	FlushReclaimedTimerWaitTime int `json:"flush-reclaimed-timer-wait-time"`
+	HoldReclaimedTime           int `json:"hold-reclaimed-time"`
+	MaxReclaimLeases            int `json:"max-reclaim-leases"`
+	MaxReclaimTime              int `json:"max-reclaim-time"`
+	ReclaimTimerWaitTime        int `json:"reclaim-timer-wait-time"`
+	UnwarnedReclaimCycles       int `json:"unwarned-reclaim-cycles"`
+}
+
+//HooksLibraries structure
+type HooksLibraries struct {
+	Library string `json:"library"`
+}
+
+//InterfacesConfig structure
+type InterfacesConfig struct {
+	Interfaces []string `json:"interfaces"`
+	ReDetect   bool     `json:"re-detect"`
+}
+
+//LeaseDatabase structure
+type LeaseDatabase struct {
+	LFCInterval int    `json:"lfc-interval"`
+	Name        string `json:"name"`
+	Persist     bool   `json:"persist"`
+	Type        string `json:"type"`
+}
+
+//Loggers structure
+type Loggers struct {
+	DebugLevel    int             `json:"debuglevel"`
+	Name          string          `json:"name"`
+	OutputOptions []OutputOptions `json:"output_options"`
+	Severity      string          `json:"severity"`
+}
+
+//OptionData structure
+type OptionData struct {
+	AlwaysSend bool   `json:"always-send"`
+	Code       int    `json:"code,omitempty"`
+	CSVFormat  bool   `json:"csv-format"`
+	Data       string `json:"data"`
+	Name       string `json:"name,omitempty"`
+	Space      string `json:"space"`
+}
+
+//OutputOptions structure
+type OutputOptions struct {
+	Output string `json:"output"`
+}
+
+//Pools structure
+type Pools struct {
+	OptionData []OptionData `json:"option-data"`
+	Pool       string       `json:"pool"`
+}
+
+//SanityChecks structure
+type SanityChecks struct {
+	LeaseChecks string `json:"lease-checks"`
 }
 
 //Subnet4 structure
 type Subnet4 struct {
-	Subnet        interface{}    `json:"subnet"`
-	Pools         interface{}    `json:"pools"`
-	OptionData    interface{}    `json:"option-data"`
-	RenewTimer    int            `json:"renew-timer"`
-	RebindTimer   int            `json:"rebind-timer"`
-	ValidLifetime int            `json:"valid-lifetime"`
-	Reservations  []Reservations `json:"reservations"`
+	FourOverSixInterface   string         `json:"4o6-interface"`
+	FourOverSixInterfaceId string         `json:"4o6-interface-id"`
+	FourOverSixSubnet      string         `json:"4o6-subnet"`
+	Authoritative          bool           `json:"authoritative"`
+	CalculateTeeTimes      bool           `json:"calculate-tee-times"`
+	Id                     int            `json:"id"`
+	MatchClientId          bool           `json:"match-client-id"`
+	NextServer             string         `json:"next-server"`
+	OptionData             []OptionData   `json:"option-data"`
+	Pools                  []Pools        `json:"pools"`
+	RebindTimer            int            `json:"rebind-timer"`
+	Relay                  interface{}    `json:"relay"`
+	RenewTimer             int            `json:"renew-timer"`
+	ReservationMode        string         `json:"reservation-mode"`
+	Reservations           []Reservations `json:"reservations"`
+	Subnet                 string         `json:"subnet"`
+	T1Percent              float64        `json:"t1-percent"`
+	T2Percent              float64        `json:"t2-percent"`
+	ValidLifetime          int            `json:"valid-lifetime"`
+}
+
+// Relay structure
+type Relay struct {
+	IPAddresses interface{} `json:"ip-addresses"` // Not implemented
 }
 
 //Reservations structure
 type Reservations struct {
-	Hostname  string `json:"hostname"`
-	Hwaddress string `json:"hw-address"`
-	Ipaddress string `json:"ip-address"`
+	BootFileName   string       `json:"boot-file-name"`
+	ClientClasses  []string     `json:"client-classes"`
+	Hostname       string       `json:"hostname"`
+	HWAddress      string       `json:"hw-address"`
+	IPAddress      string       `json:"ip-address"`
+	NextServer     string       `json:"next-server"`
+	OptionData     []OptionData `json:"option-data"`
+	ServerHostname string       `json:"server-hostname"`
 }
 
 // Config struct for provider
@@ -121,11 +274,11 @@ func (c *Config) Client() (*Client, error) {
 func (c *Client) ReadLease(r Reservations) bool {
 	for _, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
 		if reservation.Hostname == r.Hostname {
-			log.Printf("[DEBUG] read function found host\n")
+			log.Printf("[DEBUG] read function found the host\n")
 			return true
 		}
 	}
-	log.Printf("[DEBUG] read function cannot found the host\n")
+	log.Printf("[DEBUG] read function cannot find the host\n")
 	return false
 }
 
@@ -142,8 +295,19 @@ func (c *Client) NewLease(r Reservations) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+		return err
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		var resp []Response
+		err := json.Unmarshal(data, &resp)
+		if err != nil {
+			log.Printf("[Error] Could not unmarshal API response: %s\n", err)
+			return err
+		}
+		if resp[0].Result != KEA_SUCCESS && resp[0].Result != KEA_EMPTY {
+			log.Printf("[Error] The HTTP request failed with error %s\n", resp[0].Text)
+			return fmt.Errorf(resp[0].Text)
+		}
 		c.SaveConfig()
 		log.Printf("[INFO] New lease shoud be added.. %s\n", string(data))
 	}
@@ -168,8 +332,19 @@ func (c *Client) UpdateLease(r Reservations) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+		return err
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		var resp []Response
+		err := json.Unmarshal(data, &resp)
+		if err != nil {
+			log.Printf("[Error] Could not unmarshal API response: %s\n", err)
+			return err
+		}
+		if resp[0].Result != KEA_SUCCESS && resp[0].Result != KEA_EMPTY {
+			log.Printf("[Error] The HTTP request failed with error %s\n", resp[0].Text)
+			return fmt.Errorf(resp[0].Text)
+		}
 		c.SaveConfig()
 		log.Printf("[INFO] The lease shoud be updated.. %s\n", string(data))
 	}
@@ -196,8 +371,19 @@ func (c *Client) DeleteLease(r Reservations) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+		return err
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		var resp []Response
+		err := json.Unmarshal(data, &resp)
+		if err != nil {
+			log.Printf("[Error] Could not unmarshal API response: %s\n", err)
+			return err
+		}
+		if resp[0].Result != KEA_SUCCESS && resp[0].Result != KEA_EMPTY {
+			log.Printf("[Error] The HTTP request failed with error %s\n", resp[0].Text)
+			return fmt.Errorf(resp[0].Text)
+		}
 		c.SaveConfig()
 		log.Printf("[INFO] The lease should be deleted if existed.. %s\n", string(data))
 	}
@@ -218,9 +404,20 @@ func (c *Client) SaveConfig() error {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		log.Printf("[ERROR] The HTTP request failed with error %s\n", err)
+		log.Printf("[Error] The HTTP request failed with error %s\n", err)
+		return err
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		var resp []Response
+		err := json.Unmarshal(data, &resp)
+		if err != nil {
+			log.Printf("[Error] Could not unmarshal API response: %s\n", err)
+			return err
+		}
+		if resp[0].Result != KEA_SUCCESS && resp[0].Result != KEA_EMPTY {
+			log.Printf("[Error] The HTTP request failed with error %s\n", resp[0].Text)
+			return fmt.Errorf(resp[0].Text)
+		}
 		log.Printf("[INFO] Configuration file should be saved.. %s\n", string(data))
 	}
 	return nil

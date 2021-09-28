@@ -44,6 +44,14 @@ Configuration and Usage:
         mac_address = "aa:bb:cc:00:11:22"
         ip_address = "192.168.10.10"
     }
+    option_data  {
+        data = "10.0.0.1"
+        name = "log-servers"
+    }
+    option_data  {
+        data = "10.0.0.1"
+        name = "ntp-servers"
+    }
 ```
 
 Notice: you need to have already defined subnets in your kea server, 
