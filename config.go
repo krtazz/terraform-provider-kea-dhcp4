@@ -50,36 +50,44 @@ type Response struct {
 
 //Dhcp4 structure
 type Dhcp4 struct {
-	Authoritative              bool             `json:"authoritative"`
-	BootFileName               string           `json:"boot-file-name"`
-	CalculateTeeTimes          bool             `json:"calculate-tee-times"`
-	ControlSocket              interface{}      `json:"control-socket"`
-	DeclineProbationPeriod     int              `json:"decline-probation-period"`
-	DHCPDDNS                   interface{}      `json:"dhcp-ddns"`
-	DHCPQueueControl           interface{}      `json:"dhcp-queue-control"`
-	DHCP4o6Port                int              `json:"dhcp4o6-port"`
-	EchoClientId               bool             `json:"echo-client-id"`
-	ExpiredLeasesProcessing    interface{}      `json:"expired-leases-processing"`
-	HooksLibraries             []HooksLibraries `json:"hooks-libraries"`
-	HostReservationIdentifiers []string         `json:"host-reservation-identifiers"`
-	InterfacesConfig           interface{}      `json:"interfaces-config"`
-	LeaseDatabase              interface{}      `json:"lease-database"`
-	Loggers                    []Loggers        `json:"loggers"`
-	MatchClientId              bool             `json:"match-client-id"`
-	NextServer                 string           `json:"next-server"`
-	OptionData                 interface{}      `json:"option-data"`
-	OptionDef                  interface{}      `json:"option-def"` // Not implemented
-	RebindTimer                int              `json:"rebind-timer"`
-	RenewTimer                 int              `json:"renew-timer"`
-	ReservationMode            string           `json:"reservation-mode"`
-	SanityChecks               interface{}      `json:"sanity-checks"`
-	ServerHostname             string           `json:"server-hostname"`
-	ServerTag                  string           `json:"server-tag"`
-	SharedNetworks             interface{}      `json:"shared-networks"` // Not implemented
-	Subnet4                    []Subnet4        `json:"subnet4"`
-	T1Percent                  float64          `json:"t1-percent"`
-	T2Percent                  float64          `json:"t2-percent"`
-	ValidLifetime              int              `json:"valid-lifetime"`
+	Authoritative              bool                    `json:"authoritative"`
+	BootFileName               string                  `json:"boot-file-name"`
+	CalculateTeeTimes          bool                    `json:"calculate-tee-times"`
+	ClientClasses              []ClientClasses         `json:"client-classes,omitempty"`
+	ControlSocket              ControlSocket           `json:"control-socket"`
+	DeclineProbationPeriod     int                     `json:"decline-probation-period"`
+	DHCPDDNS                   DHCPDDNS                `json:"dhcp-ddns"`
+	DHCPQueueControl           DHCPQueueControl        `json:"dhcp-queue-control"`
+	DHCP4o6Port                int                     `json:"dhcp4o6-port"`
+	EchoClientId               bool                    `json:"echo-client-id"`
+	ExpiredLeasesProcessing    ExpiredLeasesProcessing `json:"expired-leases-processing"`
+	HooksLibraries             []HooksLibraries        `json:"hooks-libraries"`
+	HostReservationIdentifiers []string                `json:"host-reservation-identifiers"`
+	InterfacesConfig           InterfacesConfig        `json:"interfaces-config"`
+	LeaseDatabase              LeaseDatabase           `json:"lease-database"`
+	Loggers                    []Loggers               `json:"loggers"`
+	MatchClientId              bool                    `json:"match-client-id"`
+	NextServer                 string                  `json:"next-server"`
+	OptionData                 []OptionData            `json:"option-data"`
+	OptionDef                  interface{}             `json:"option-def,omitempty"` // Not implemented
+	RebindTimer                int                     `json:"rebind-timer"`
+	RenewTimer                 int                     `json:"renew-timer"`
+	ReservationMode            string                  `json:"reservation-mode"`
+	SanityChecks               SanityChecks            `json:"sanity-checks"`
+	ServerHostname             string                  `json:"server-hostname"`
+	ServerTag                  string                  `json:"server-tag"`
+	SharedNetworks             interface{}             `json:"shared-networks,omitempty"` // Not implemented
+	Subnet4                    []Subnet4               `json:"subnet4"`
+	T1Percent                  float64                 `json:"t1-percent"`
+	T2Percent                  float64                 `json:"t2-percent"`
+	ValidLifetime              int                     `json:"valid-lifetime"`
+}
+
+//ClientClasses structure
+type ClientClasses struct {
+	Name       string       `json:"name"`
+	OptionData []OptionData `json:"option-data"`
+	Test       string       `json:"test"`
 }
 
 //ControlSocket structure
@@ -253,6 +261,12 @@ func (c *Config) Client() (*Client, error) {
 	resp, err := htclient.Do(req)
 	if err != nil {
 		log.Fatalf("The HTTP request failed with error %s\n", err)
+		return nil, err
+	} else if resp.StatusCode >= 400 {
+		data, _ = ioutil.ReadAll(resp.Body)
+		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
+		log.Printf(errtext)
+		return nil, fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
 		log.Printf("[INFO] %s\n", string(data))
@@ -289,6 +303,7 @@ func (c *Client) NewLease(r Reservations) error {
 	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
 	enc, err := json.Marshal(jsonSet)
 	check(err)
+	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
@@ -296,6 +311,11 @@ func (c *Client) NewLease(r Reservations) error {
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
 		return err
+	} else if resp.StatusCode >= 400 {
+		data, _ = ioutil.ReadAll(resp.Body)
+		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
+		log.Printf(errtext)
+		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
 		var resp []Response
@@ -326,6 +346,7 @@ func (c *Client) UpdateLease(r Reservations) error {
 	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
 	enc, err := json.Marshal(jsonSet)
 	check(err)
+	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
@@ -333,6 +354,11 @@ func (c *Client) UpdateLease(r Reservations) error {
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
 		return err
+	} else if resp.StatusCode >= 400 {
+		data, _ = ioutil.ReadAll(resp.Body)
+		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
+		log.Printf(errtext)
+		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
 		var resp []Response
@@ -365,6 +391,7 @@ func (c *Client) DeleteLease(r Reservations) error {
 	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
 	enc, err := json.Marshal(jsonSet)
 	check(err)
+	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
@@ -372,6 +399,11 @@ func (c *Client) DeleteLease(r Reservations) error {
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
 		return err
+	} else if resp.StatusCode >= 400 {
+		data, _ = ioutil.ReadAll(resp.Body)
+		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
+		log.Printf(errtext)
+		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
 		var resp []Response
@@ -406,6 +438,11 @@ func (c *Client) SaveConfig() error {
 	if err != nil {
 		log.Printf("[Error] The HTTP request failed with error %s\n", err)
 		return err
+	} else if resp.StatusCode >= 400 {
+		data, _ = ioutil.ReadAll(resp.Body)
+		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
+		log.Printf(errtext)
+		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
 		var resp []Response
