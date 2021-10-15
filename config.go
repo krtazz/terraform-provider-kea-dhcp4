@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"sync"
 )
 
 //SERVICE define which IP version we are use (currently only dhcp4 supported)
@@ -55,6 +57,12 @@ type Dhcp4 struct {
 	CalculateTeeTimes          bool                    `json:"calculate-tee-times"`
 	ClientClasses              []ClientClasses         `json:"client-classes,omitempty"`
 	ControlSocket              ControlSocket           `json:"control-socket"`
+	DDNSGeneratedPrefix        string                  `json:"ddns-generated-prefix,omitempty"`
+	DDNSOverrideClientUpdates  bool                    `json:"ddns-override-client-update,omitempty"`
+	DDNSOverrideNoUpdate       bool                    `json:"ddns-override-no-update,omitempty"`
+	DDNSQualifyingSuffix       string                  `json:"ddns-qualifying-suffix,omitempty"`
+	DDNSReplaceClientName      string                  `json:"ddns-replace-client-name,omitempty"`
+	DDNSSendUpdates            bool                    `json:"ddns-send-updates,omitempty"`
 	DeclineProbationPeriod     int                     `json:"decline-probation-period"`
 	DHCPDDNS                   DHCPDDNS                `json:"dhcp-ddns"`
 	DHCPQueueControl           DHCPQueueControl        `json:"dhcp-queue-control"`
@@ -236,6 +244,7 @@ type Client struct {
 	Config        *Config
 	currentConfig []NestedElem
 	httpClient    *http.Client
+	lock          sync.Mutex
 }
 
 func check(e error) {
@@ -256,6 +265,7 @@ func (c *Config) Client() (*Client, error) {
 	b, err := json.Marshal(jsonStr)
 	check(err)
 	req, err := http.NewRequest("POST", c.Server, bytes.NewBuffer(b))
+	check(err)
 	req.SetBasicAuth(c.Username, c.Password)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := htclient.Do(req)
@@ -265,15 +275,26 @@ func (c *Config) Client() (*Client, error) {
 	} else if resp.StatusCode >= 400 {
 		data, _ = ioutil.ReadAll(resp.Body)
 		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
-		log.Printf(errtext)
+		log.Print(errtext)
 		return nil, fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
+		var resp []Response
+		err := json.Unmarshal(data, &resp)
+		if err != nil {
+			log.Printf("[Error] Could not unmarshal API response: %s\n", err)
+			return nil, err
+		}
+		if resp[0].Result != KEA_SUCCESS && resp[0].Result != KEA_EMPTY {
+			log.Printf("[Error] The HTTP request failed with error %s\n", resp[0].Text)
+			return nil, fmt.Errorf(resp[0].Text)
+		}
 		log.Printf("[INFO] %s\n", string(data))
 	}
 	log.Println("[INFO] Terminating GET_CONF application...")
 	var m []NestedElem
 	err = json.Unmarshal(data, &m)
+	check(err)
 
 	client := &Client{
 		Config:        c,
@@ -305,6 +326,7 @@ func (c *Client) NewLease(r Reservations) error {
 	check(err)
 	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
+	check(err)
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
@@ -314,7 +336,7 @@ func (c *Client) NewLease(r Reservations) error {
 	} else if resp.StatusCode >= 400 {
 		data, _ = ioutil.ReadAll(resp.Body)
 		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
-		log.Printf(errtext)
+		log.Print(errtext)
 		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
@@ -331,7 +353,6 @@ func (c *Client) NewLease(r Reservations) error {
 		c.SaveConfig()
 		log.Printf("[INFO] New lease shoud be added.. %s\n", string(data))
 	}
-
 	return nil
 }
 
@@ -348,6 +369,7 @@ func (c *Client) UpdateLease(r Reservations) error {
 	check(err)
 	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
+	check(err)
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
@@ -357,7 +379,7 @@ func (c *Client) UpdateLease(r Reservations) error {
 	} else if resp.StatusCode >= 400 {
 		data, _ = ioutil.ReadAll(resp.Body)
 		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
-		log.Printf(errtext)
+		log.Print(errtext)
 		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
@@ -374,7 +396,6 @@ func (c *Client) UpdateLease(r Reservations) error {
 		c.SaveConfig()
 		log.Printf("[INFO] The lease shoud be updated.. %s\n", string(data))
 	}
-
 	return nil
 
 }
@@ -382,17 +403,20 @@ func (c *Client) UpdateLease(r Reservations) error {
 // DeleteLease resource
 func (c *Client) DeleteLease(r Reservations) error {
 	var data []byte
-	for index, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
-		if reservation.Hostname == r.Hostname {
-			c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations = append(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[:index],
-				c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations[index+1:]...)
+	filteredReservations := make([]Reservations, 0)
+	for _, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
+		if reservation.Hostname != r.Hostname {
+			filteredReservations = append(filteredReservations, reservation)
 		}
 	}
+
+	c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations = filteredReservations
 	jsonSet := configSet{Command: "config-set", Service: SERVICE, Arguments: c.currentConfig[0].Arguments}
 	enc, err := json.Marshal(jsonSet)
 	check(err)
 	log.Printf("[DEBUG] Generated JSON: %s\n", enc)
 	req, err := http.NewRequest("POST", c.Config.Server, bytes.NewBuffer(enc))
+	check(err)
 	req.SetBasicAuth(c.Config.Username, c.Config.Password)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
@@ -402,7 +426,7 @@ func (c *Client) DeleteLease(r Reservations) error {
 	} else if resp.StatusCode >= 400 {
 		data, _ = ioutil.ReadAll(resp.Body)
 		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
-		log.Printf(errtext)
+		log.Print(errtext)
 		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)
@@ -419,7 +443,6 @@ func (c *Client) DeleteLease(r Reservations) error {
 		c.SaveConfig()
 		log.Printf("[INFO] The lease should be deleted if existed.. %s\n", string(data))
 	}
-
 	return nil
 
 }
@@ -441,7 +464,7 @@ func (c *Client) SaveConfig() error {
 	} else if resp.StatusCode >= 400 {
 		data, _ = ioutil.ReadAll(resp.Body)
 		errtext := fmt.Sprintf("The HTTP request failed with code %d, response was %s\n", resp.StatusCode, data)
-		log.Printf(errtext)
+		log.Print(errtext)
 		return fmt.Errorf(errtext)
 	} else {
 		data, _ = ioutil.ReadAll(resp.Body)

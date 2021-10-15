@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func hostLease() *schema.Resource {
@@ -124,6 +124,8 @@ func validateName(v interface{}, k string) (ws []string, es []error) {
 
 func resourceCreateLease(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*Client)
+	apiClient.lock.Lock()
+	defer apiClient.lock.Unlock()
 
 	iClientClasses := d.Get("client_classes").([]interface{})
 	ClientClasses := make([]string, len(iClientClasses))
@@ -167,6 +169,8 @@ func resourceCreateLease(d *schema.ResourceData, m interface{}) error {
 
 func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*Client)
+	apiClient.lock.Lock()
+	defer apiClient.lock.Unlock()
 
 	iClientClasses := d.Get("client_classes").([]interface{})
 	ClientClasses := make([]string, len(iClientClasses))
@@ -203,6 +207,8 @@ func resourceUpdateLease(d *schema.ResourceData, m interface{}) error {
 }
 func resourceReadLease(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*Client)
+	apiClient.lock.Lock()
+	defer apiClient.lock.Unlock()
 
 	iClientClasses := d.Get("client_classes").([]interface{})
 	ClientClasses := make([]string, len(iClientClasses))
@@ -239,6 +245,8 @@ func resourceReadLease(d *schema.ResourceData, m interface{}) error {
 }
 func resourceDeleteLease(d *schema.ResourceData, m interface{}) error {
 	apiClient := m.(*Client)
+	apiClient.lock.Lock()
+	defer apiClient.lock.Unlock()
 
 	iClientClasses := d.Get("client_classes").([]interface{})
 	ClientClasses := make([]string, len(iClientClasses))
