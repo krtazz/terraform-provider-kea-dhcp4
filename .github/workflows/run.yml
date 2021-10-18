@@ -1,0 +1,66 @@
+name: Test run
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build-linux:
+    name: "Build and test run (Linux)"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build
+      env: 
+        CGO_ENABLED: "0"
+        GOOS: linux
+        GOARCH: amd64
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4
+
+    - name: Run
+      run: ./terraform-provider-kea-dhcp4_v1.0_x4 || true
+  build-darwin:
+    name: "Build and test run (Darwin)"
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build
+      env: 
+        CGO_ENABLED: "0"
+        GOOS: darwin
+        GOARCH: amd64
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4
+
+    - name: Run
+      run: ./terraform-provider-kea-dhcp4_v1.0_x4 || true
+  build-windows:
+    name: "Build and test run (Windows)"
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build
+      env: 
+        CGO_ENABLED: "0"
+        GOOS: windows
+        GOARCH: amd64
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4.exe
+
+    - name: Run
+      run: cmd /c '.\terraform-provider-kea-dhcp4_v1.0_x4.exe || VER>NUL'
