@@ -24,7 +24,7 @@ jobs:
 
     - name: Run
       run: ./terraform-provider-kea-dhcp4_v1.0_x4
-  build-linux:
+  build-darwin:
     name: "Build and test run (Darwin)"
     runs-on: macos-latest
     steps:
