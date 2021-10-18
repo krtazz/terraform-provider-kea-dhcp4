@@ -9,7 +9,6 @@ on:
     branches: [ master ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +53,35 @@ jobs:
     - name: Terraform destroy
       working-directory: test-data/terraform
       run: terraform apply -auto-approve
+
+    - name: Build artifacts (Linux)
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        CGO_ENABLED: "0"
+        GOARCH: amd64
+        GOOS: linux
+      run: go build -a -o build/terraform-provider-kea-dhcp4_v1.0-linux-amd64
+     
+    - name: Build artifacts (macOS)
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        CGO_ENABLED: "0"
+        GOARCH: amd64
+        GOOS: darwin
+      run: go build -a -o build/terraform-provider-kea-dhcp4_v1.0-darwin-amd64
+
+    - name: Build artifacts (Windows)
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        CGO_ENABLED: "0"
+        GOARCH: amd64
+        GOOS: windows
+      run: go build -a -o build/terraform-provider-kea-dhcp4_v1.0-windows-amd64
+
+    - name: Release
+      uses: fnkr/github-action-ghr@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      env:
+        GHR_COMPRESS: zip
+        GHR_PATH: build/
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

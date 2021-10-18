@@ -22,7 +22,6 @@ func main() {
 	}
 
 	if debugMode {
-		// TODO: update this string with the full name of your provider as used in your configs
 		err := plugin.Debug(context.Background(), "kea-dhcp4", opts)
 		if err != nil {
 			log.Fatal(err.Error())
