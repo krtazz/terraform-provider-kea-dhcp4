@@ -63,4 +63,4 @@ jobs:
       run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4.exe
 
     - name: Run
-      run: "try { .\\terraform-provider-kea-dhcp4_v1.0.0-windows-amd64.exe } catch {}"
+      run: "cmd /c .\\terraform-provider-kea-dhcp4_v1.0.0-windows-amd64.exe || VER>NUL"
