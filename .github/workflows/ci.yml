@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    name: "Build, test and release"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -35,24 +36,19 @@ jobs:
         terraform_version: 0.12.20
 
     - name: Set up test environment
-      run: docker network create kea
-      
-    - run: docker build -t kea-test -f kea.Dockerfile .
-    - run: docker build -t nginx-test -f api.Dockerfile .
-    - run: docker run -d --network kea --name kea kea-test
-    - run: docker run -d --network kea --name api -p 127.0.0.1:8080:8080/tcp nginx-test
+      run: |
+        docker network create kea
+        docker build -t kea-test -f kea.Dockerfile .
+        docker build -t nginx-test -f api.Dockerfile .
+        docker run -d --network kea --name kea kea-test
+        docker run -d --network kea --name api -p 127.0.0.1:8080:8080/tcp nginx-test
 
-    - name: Terraform init
+    - name: Test
       working-directory: test-data/terraform
-      run: terraform init
-
-    - name: Terraform apply
-      working-directory: test-data/terraform
-      run: terraform apply -auto-approve
-
-    - name: Terraform destroy
-      working-directory: test-data/terraform
-      run: terraform apply -auto-approve
+      run: |
+        terraform init
+        terraform apply -auto-approve
+        terraform destroy -auto-approve
 
     - name: Build artifacts (Linux)
       if: startsWith(github.ref, 'refs/tags/')
