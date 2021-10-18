@@ -20,7 +20,7 @@ jobs:
         CGO_ENABLED: "0"
         GOOS: linux
         GOARCH: amd64
-      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4 || true
 
     - name: Run
       run: ./terraform-provider-kea-dhcp4_v1.0_x4
@@ -40,7 +40,7 @@ jobs:
         CGO_ENABLED: "0"
         GOOS: darwin
         GOARCH: amd64
-      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4 || true
 
     - name: Run
       run: ./terraform-provider-kea-dhcp4_v1.0_x4
@@ -60,7 +60,7 @@ jobs:
         CGO_ENABLED: "0"
         GOOS: windows
         GOARCH: amd64
-      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4.exe
+      run: go build -v -a -o terraform-provider-kea-dhcp4_v1.0_x4.exe || VER>NUL
 
     - name: Run
       run: .\terraform-provider-kea-dhcp4_v1.0_x4.exe
