@@ -79,7 +79,7 @@ jobs:
         CGO_ENABLED: "0"
         GOARCH: amd64
         GOOS: windows
-      run: go build -a -o build/terraform-provider-kea-dhcp4_${{ env.RELEASE_VERSION }}-windows-amd64
+      run: go build -a -o build/terraform-provider-kea-dhcp4_${{ env.RELEASE_VERSION }}-windows-amd64.exe
 
     - name: Release
       uses: fnkr/github-action-ghr@v1
