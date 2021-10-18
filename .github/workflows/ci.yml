@@ -26,7 +26,7 @@ jobs:
         CGO_ENABLED: "0"
         GOOS: linux
         GOARCH: amd64
-      run: go build -v -a . -o ~/.terraform.d/plugins/linux_amd64/terraform-provider-kea-dhcp4_v1.0_x4
+      run: go build -v -a -o ~/.terraform.d/plugins/linux_amd64/terraform-provider-kea-dhcp4_v1.0_x4
 
     - name: Set up Terraform
       uses: hashicorp/setup-terraform@v1
