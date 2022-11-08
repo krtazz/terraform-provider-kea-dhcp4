@@ -1,0 +1,24 @@
+---
+page_title: "Provider: kea-dhcp4"
+description: |-
+  Provider for ISC Kea DHCP server for provisioning static DHCP leases.
+---
+
+# {{ .ProviderShortName | upper }} Provider
+
+The provider uses Kea Control Agent's REST API for communication with an underlying Kea DHCP4 server (DHCP6 currently not supported), with optional reverse proxying for adding TLS and authentication.
+
+Before using the provider, you must correctly specify the connection URL, credentials (if any), and path to DHCP server conffile on host (required for config-write API command).
+
+
+## Requirements
+
+* ISC Kea DHCP server v1.8+
+* Terraform 0.14+
+
+{{ if .HasExample -}}
+## Example Usage
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}

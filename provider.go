@@ -6,29 +6,31 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-//Provider definition for kea-dhcpd
+// Provider definition for kea-dhcpd
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"kea_server_address": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "IP or FQDN of host which serve DHCP daemon",
+				Description: "IP or FQDN of host which serves Kea Control Agent API",
 			},
 			"kea_server_username": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "omapi key name defined in dhcpd.conf",
+				Optional:    true,
+				Default:     "admin",
+				Description: "HTTP basic auth username (if configured)",
 			},
 			"kea_server_password": {
 				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Value of the key defined in dhcpd.conf",
+				Optional:    true,
+				Default:     "password",
+				Description: "HTTP basic auth password (if configured)",
 			},
 			"kea_server_configfile": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Value of the key defined in dhcpd.conf",
+				Required:    true,
+				Description: "Path to Kea DHCP4 server config (on server, required for config-write command)",
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
