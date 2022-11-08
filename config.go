@@ -80,7 +80,7 @@ type Dhcp4 struct {
 	OptionDef                  interface{}             `json:"option-def,omitempty"` // Not implemented
 	RebindTimer                int                     `json:"rebind-timer"`
 	RenewTimer                 int                     `json:"renew-timer"`
-	ReservationMode            string                  `json:"reservation-mode"`
+	ReservationMode            string                  `json:"reservation-mode,omitempty"`
 	SanityChecks               SanityChecks            `json:"sanity-checks"`
 	ServerHostname             string                  `json:"server-hostname"`
 	ServerTag                  string                  `json:"server-tag"`
@@ -206,7 +206,7 @@ type Subnet4 struct {
 	RebindTimer            int            `json:"rebind-timer"`
 	Relay                  interface{}    `json:"relay"`
 	RenewTimer             int            `json:"renew-timer"`
-	ReservationMode        string         `json:"reservation-mode"`
+	ReservationMode        string         `json:"reservation-mode,omitempty"`
 	Reservations           []Reservations `json:"reservations"`
 	Subnet                 string         `json:"subnet"`
 	T1Percent              float64        `json:"t1-percent"`

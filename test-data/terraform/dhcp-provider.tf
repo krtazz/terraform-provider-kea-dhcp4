@@ -1,4 +1,12 @@
-# define kea-dhcp4 provider
+terraform {
+    required_providers {
+        kea-dhcp4 = {
+            source = "terraform.local/feliksas/kea-dhcp4"
+            version = "1.0.0"
+        }
+    }
+}
+
 provider "kea-dhcp4" {
     kea_server_address    = "http://localhost:8080"
     kea_server_username   = "test"

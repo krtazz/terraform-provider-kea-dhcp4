@@ -2,3 +2,6 @@ terraform-provider-kea-dhcp4
 .gitconfig
 .vscode
 build/*
+test-data/terraform/*lock.hcl
+test-data/terraform/.terraform/
+test-data/terraform/*tfstate*

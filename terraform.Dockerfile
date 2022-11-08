@@ -6,18 +6,14 @@ RUN apk add git
 ARG CGO_ENABLED=0
 ARG GOARCH=amd64 
 ARG GOOS=linux 
-RUN go build -a -o terraform-provider-kea-dhcp4_v1.0-linux-amd64
-ARG GOOS=darwin
-RUN go build -a -o terraform-provider-kea-dhcp4_v1.0-darwin-amd64
-ARG GOOS=windows
-RUN go build -a -o terraform-provider-kea-dhcp4_v1.0-windows-amd64
+RUN go build -a -o terraform-provider-kea-dhcp4_v1.0.0
 
 FROM scratch AS exporter
 COPY --from=builder /build/terraform-provider-kea* /
 
-FROM hashicorp/terraform:0.12.20 AS runner
-RUN mkdir -p /root/.terraform.d/plugins/linux_amd64/
-COPY --from=builder /build/terraform-provider-kea-dhcp4_v1.0-linux-amd64 /root/.terraform.d/plugins/linux_amd64/
+FROM hashicorp/terraform:latest AS runner
+RUN mkdir -p /root/.terraform.d/plugins/terraform.local/feliksas/kea-dhcp4/1.0.0/linux_amd64
+COPY --from=builder /build/terraform-provider-kea-dhcp4_v1.0.0 /root/.terraform.d/plugins/terraform.local/feliksas/kea-dhcp4/1.0.0/linux_amd64/
 RUN mkdir /tffiles
 WORKDIR /tffiles
 COPY ./test-data/terraform/*.tf /tffiles/
