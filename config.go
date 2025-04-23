@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-//SERVICE define which IP version we are use (currently only dhcp4 supported)
+// SERVICE define which IP version we are use (currently only dhcp4 supported)
 var SERVICE []string = []string{"dhcp4"}
 
 // REST API response codes
@@ -33,24 +33,24 @@ type configSet struct {
 	Arguments Arguments `json:"arguments"`
 }
 
-//NestedElem elements in root
+// NestedElem elements in root
 type NestedElem struct {
 	Arguments Arguments `json:"arguments"`
 	Result    int       `json:"result"`
 }
 
-//Arguments structure
+// Arguments structure
 type Arguments struct {
 	Dhcp4 Dhcp4 `json:"Dhcp4"`
 }
 
-//Response structure
+// Response structure
 type Response struct {
 	Result int    `json:"result"`
 	Text   string `json:"text"`
 }
 
-//Dhcp4 structure
+// Dhcp4 structure
 type Dhcp4 struct {
 	Authoritative              bool                    `json:"authoritative"`
 	BootFileName               string                  `json:"boot-file-name"`
@@ -78,6 +78,7 @@ type Dhcp4 struct {
 	NextServer                 string                  `json:"next-server"`
 	OptionData                 []OptionData            `json:"option-data"`
 	OptionDef                  interface{}             `json:"option-def,omitempty"` // Not implemented
+	Parameters                 map[string]string       `json:"parameters,omitempty"`
 	RebindTimer                int                     `json:"rebind-timer"`
 	RenewTimer                 int                     `json:"renew-timer"`
 	ReservationMode            string                  `json:"reservation-mode,omitempty"`
@@ -91,20 +92,20 @@ type Dhcp4 struct {
 	ValidLifetime              int                     `json:"valid-lifetime"`
 }
 
-//ClientClasses structure
+// ClientClasses structure
 type ClientClasses struct {
 	Name       string       `json:"name"`
 	OptionData []OptionData `json:"option-data"`
 	Test       string       `json:"test"`
 }
 
-//ControlSocket structure
+// ControlSocket structure
 type ControlSocket struct {
 	SocketName string `json:"socket-name"`
 	SocketType string `json:"socket-type"`
 }
 
-//DHCPDDNS structure
+// DHCPDDNS structure
 type DHCPDDNS struct {
 	EnableUpdates        bool   `json:"enable-updates"`
 	GeneratedPrefix      string `json:"generated-prefix"`
@@ -121,14 +122,14 @@ type DHCPDDNS struct {
 	ServerPort           int    `json:"server-port"`
 }
 
-//DHCPQueueControl structure
+// DHCPQueueControl structure
 type DHCPQueueControl struct {
 	Capacity    int    `json:"capacity"`
 	EnableQueue bool   `json:"enable-queue"`
 	QueueType   string `json:"queue-type"`
 }
 
-//ExpiredLeasesProcessing structure
+// ExpiredLeasesProcessing structure
 type ExpiredLeasesProcessing struct {
 	FlushReclaimedTimerWaitTime int `json:"flush-reclaimed-timer-wait-time"`
 	HoldReclaimedTime           int `json:"hold-reclaimed-time"`
@@ -138,18 +139,19 @@ type ExpiredLeasesProcessing struct {
 	UnwarnedReclaimCycles       int `json:"unwarned-reclaim-cycles"`
 }
 
-//HooksLibraries structure
+// HooksLibraries structure
 type HooksLibraries struct {
-	Library string `json:"library"`
+	Library    string                 `json:"library"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
-//InterfacesConfig structure
+// InterfacesConfig structure
 type InterfacesConfig struct {
 	Interfaces []string `json:"interfaces"`
 	ReDetect   bool     `json:"re-detect"`
 }
 
-//LeaseDatabase structure
+// LeaseDatabase structure
 type LeaseDatabase struct {
 	LFCInterval int    `json:"lfc-interval"`
 	Name        string `json:"name"`
@@ -157,15 +159,15 @@ type LeaseDatabase struct {
 	Type        string `json:"type"`
 }
 
-//Loggers structure
+// Loggers structure
 type Loggers struct {
 	DebugLevel    int             `json:"debuglevel"`
 	Name          string          `json:"name"`
-	OutputOptions []OutputOptions `json:"output_options"`
+	OutputOptions []OutputOptions `json:"output-options"`
 	Severity      string          `json:"severity"`
 }
 
-//OptionData structure
+// OptionData structure
 type OptionData struct {
 	AlwaysSend bool   `json:"always-send"`
 	Code       int    `json:"code,omitempty"`
@@ -175,23 +177,27 @@ type OptionData struct {
 	Space      string `json:"space"`
 }
 
-//OutputOptions structure
+// OutputOptions structure
 type OutputOptions struct {
-	Output string `json:"output"`
+	Flush   bool   `json:"flush"`
+	Output  string `json:"output"`
+	Pattern string `json:"pattern,omitempty"`
+	MaxSize int    `json:"maxsize,omitempty"`
+	MaxVer  int    `json:"maxver,omitempty"`
 }
 
-//Pools structure
+// Pools structure
 type Pools struct {
 	OptionData []OptionData `json:"option-data"`
 	Pool       string       `json:"pool"`
 }
 
-//SanityChecks structure
+// SanityChecks structure
 type SanityChecks struct {
 	LeaseChecks string `json:"lease-checks"`
 }
 
-//Subnet4 structure
+// Subnet4 structure
 type Subnet4 struct {
 	FourOverSixInterface   string         `json:"4o6-interface"`
 	FourOverSixInterfaceId string         `json:"4o6-interface-id"`
@@ -219,7 +225,7 @@ type Relay struct {
 	IPAddresses interface{} `json:"ip-addresses"` // Not implemented
 }
 
-//Reservations structure
+// Reservations structure
 type Reservations struct {
 	BootFileName   string       `json:"boot-file-name"`
 	ClientClasses  []string     `json:"client-classes"`
@@ -254,7 +260,7 @@ func check(e error) {
 	}
 }
 
-//Client In go (c *Config) means this is method assosieted to struct Config
+// Client In go (c *Config) means this is method assosieted to struct Config
 func (c *Config) Client() (*Client, error) {
 
 	log.Println("[INFO] Configuring kea-api client")
@@ -305,7 +311,7 @@ func (c *Config) Client() (*Client, error) {
 	return client, nil
 }
 
-//ReadLease method to check if lease exists in kea-dhcpd4
+// ReadLease method to check if lease exists in kea-dhcpd4
 func (c *Client) ReadLease(r Reservations) bool {
 	for _, reservation := range c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations {
 		if reservation.Hostname == r.Hostname {
@@ -317,7 +323,7 @@ func (c *Client) ReadLease(r Reservations) bool {
 	return false
 }
 
-//NewLease method to create new lease fot kea-dhcpd4 works!
+// NewLease method to create new lease fot kea-dhcpd4 works!
 func (c *Client) NewLease(r Reservations) error {
 	var data []byte
 	c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations = append(c.currentConfig[0].Arguments.Dhcp4.Subnet4[0].Reservations, r)
@@ -447,7 +453,7 @@ func (c *Client) DeleteLease(r Reservations) error {
 
 }
 
-//SaveConfig method to save a config file for kea-dhcpd4
+// SaveConfig method to save a config file for kea-dhcpd4
 func (c *Client) SaveConfig() error {
 	var data []byte
 	jsonWrite := "{ \"command\": \"config-write\", \"service\": [ \"dhcp4\" ], \"arguments\":{\"filename\":\"" + c.Config.Configfile + "\"} }"
